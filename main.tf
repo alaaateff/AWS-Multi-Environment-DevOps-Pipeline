@@ -1,15 +1,16 @@
 module "network" {
     source = "./modules/network"
     cidr_block_vpc = var.cidr_block_vpc
-    pub_cidr = var.pub_cidr
-    priv_cidr = var.priv_cidr
+    public_subnets  = var.public_subnets
+    private_subnets = var.private_subnets
     region = var.region
+    
 }
 
 resource "aws_instance" "bastion" {
   ami                     = var.ami
   instance_type           = "t3.micro"
-  subnet_id = module.network.public_subnet_id
+  subnet_id = module.network.public_subnet_ids[0]
   associate_public_ip_address  = true
    vpc_security_group_ids = [
     aws_security_group.allow_ssh.id
@@ -25,7 +26,7 @@ resource "aws_instance" "bastion" {
 resource "aws_instance" "application" {
   ami                     = var.ami
   instance_type           = "t3.micro"
-  subnet_id = module.network.private_subnet_id
+  subnet_id = module.network.private_subnet_ids[0]
    vpc_security_group_ids = [
     aws_security_group.second_sg.id
   ]

@@ -6,19 +6,25 @@ resource "aws_internet_gateway" "gw" {
   vpc_id = aws_vpc.main.id
 }
 
-resource "aws_route_table_association" "private" {
-  subnet_id      = aws_subnet.private_subnet.id
-  route_table_id = aws_route_table.private_route_table.id
+resource "aws_subnet" "public" {
+  for_each = var.public_subnets
+
+  vpc_id            = aws_vpc.main.id
+  cidr_block        = each.value
+  availability_zone = "${var.region}${each.key}"
 }
 
-resource "aws_route_table" "private_route_table" {
+resource "aws_subnet" "private" {
+  for_each = var.private_subnets
+
+  vpc_id            = aws_vpc.main.id
+  cidr_block        = each.value
+  availability_zone = "${var.region}${each.key}"
+}
+
+
+resource "aws_route_table" "public_route_table" {
   vpc_id = aws_vpc.main.id
-}
-
-resource "aws_subnet" "private_subnet" {
-  vpc_id     = aws_vpc.main.id
-  cidr_block = var.priv_cidr
-  availability_zone = "${var.region}b"
 }
 
 resource "aws_route" "public_route" {
@@ -28,21 +34,23 @@ resource "aws_route" "public_route" {
 
 }
 
-resource "aws_route_table" "public_route_table" {
+resource "aws_route_table" "private_route_table" {
   vpc_id = aws_vpc.main.id
 }
 
-resource "aws_subnet" "public_subnet" {
-  vpc_id     = aws_vpc.main.id
-  cidr_block = var.pub_cidr  
-  availability_zone = "${var.region}a"
-}
-
 resource "aws_route_table_association" "public" {
-  subnet_id      = aws_subnet.public_subnet.id
+  for_each = aws_subnet.public
+
+  subnet_id      = each.value.id
   route_table_id = aws_route_table.public_route_table.id
 }
 
 
+resource "aws_route_table_association" "private" {
+  for_each = aws_subnet.private
+
+  subnet_id      = each.value.id
+  route_table_id = aws_route_table.private_route_table.id
+}
 
 

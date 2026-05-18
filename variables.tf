@@ -6,13 +6,14 @@ variable cidr_block_vpc {
     type = string
 }
 
-variable pub_cidr {
-    type = string
+variable "public_subnets" {
+  type = map(string)
 }
 
-variable priv_cidr {
-    type = string 
+variable "private_subnets" {
+  type = map(string)
 }
+
 
 variable ami {
     type = string
