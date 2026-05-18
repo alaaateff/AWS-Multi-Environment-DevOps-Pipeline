@@ -3,6 +3,7 @@ module "network" {
     cidr_block_vpc = var.cidr_block_vpc
     pub_cidr = var.pub_cidr
     priv_cidr = var.priv_cidr
+    region = var.region
 }
 
 resource "aws_instance" "bastion" {
@@ -16,6 +17,9 @@ resource "aws_instance" "bastion" {
   provisioner "local-exec" {
     command = "echo The bastion\\'s IP address is ${self.public_ip}"
   }
+      tags = {
+  Name = "bastion-test"
+}
 }
 
 resource "aws_instance" "application" {
@@ -42,6 +46,14 @@ resource "aws_security_group" "second_sg" {
     protocol    = "tcp"
     cidr_blocks = [module.network.vpc_cidr]
   }
+
+  egress {
+  from_port   = 0
+  to_port     = 0
+  protocol    = "-1"
+  cidr_blocks = ["0.0.0.0/0"]
+}
+
 }
 
 resource "aws_security_group" "allow_ssh" {
@@ -52,4 +64,107 @@ resource "aws_security_group" "allow_ssh" {
     protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
   }
+  egress {
+  from_port   = 0
+  to_port     = 0
+  protocol    = "-1"
+  cidr_blocks = ["0.0.0.0/0"]
+ }
+}
+
+resource "aws_ses_email_identity" "my_ses" {
+  email = "alaaatef3200@gmail.com"
+}
+
+# IAM role for Lambda execution
+data "aws_iam_policy_document" "assume_role" {
+  statement {
+    effect = "Allow"
+
+    principals {
+      type        = "Service"
+      identifiers = ["lambda.amazonaws.com"]
+    }
+
+    actions = ["sts:AssumeRole"]
+  }
+}
+
+resource "aws_iam_role" "lambda_role" {
+  name               = "lambda_execution_role_${terraform.workspace}"
+  assume_role_policy = data.aws_iam_policy_document.assume_role.json
+}
+
+resource "aws_iam_role_policy" "lambda_policy" {
+  name = "test_policy_${terraform.workspace}"
+  role = aws_iam_role.lambda_role.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Action = [
+          "ses:SendEmail",
+          "ses:SendRawEmail"
+        ]
+        Effect   = "Allow"
+        Resource = "*"
+      },
+    ]
+  })
+}
+
+# Package the Lambda function code
+data "archive_file" "lambda_zip" {
+  type        = "zip"
+  source_file = "${path.module}/index.js"
+  output_path = "${path.module}/function.zip"
+}
+
+# Lambda function
+resource "aws_lambda_function" "lambda_func" {
+  filename      = data.archive_file.lambda_zip.output_path
+  function_name = "example_lambda_function_${terraform.workspace}"
+  role          = aws_iam_role.lambda_role.arn
+  handler       = "index.handler"
+  code_sha256   = data.archive_file.lambda_zip.output_base64sha256
+
+  runtime = "nodejs16.x"
+
+environment {
+  variables = {
+   region = var.region
+  }
+}
+}
+
+resource "aws_iam_role_policy_attachment" "logs" {
+  role       = aws_iam_role.lambda_role.name
+  policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
+}
+
+
+resource "aws_lambda_permission" "allow_s3" {
+  count = terraform.workspace == "dev" ? 1 : 0
+  statement_id  = "AllowS3Invoke"
+  action        = "lambda:InvokeFunction"
+  function_name = aws_lambda_function.lambda_func.function_name
+  principal     = "s3.amazonaws.com"
+  source_arn    = "arn:aws:s3:::mys3-state-file"
+}
+
+resource "aws_s3_bucket_notification" "bucket_notification" {
+  count  = terraform.workspace == "dev" ? 1 : 0
+  bucket = "mys3-state-file"
+
+  lambda_function {
+    lambda_function_arn = aws_lambda_function.lambda_func.arn
+    events              = ["s3:ObjectCreated:*"]
+
+    filter_suffix = "terraform.tfstate"
+  }
+
+  depends_on = [
+    aws_lambda_permission.allow_s3
+  ]
 }

@@ -8,3 +8,6 @@ variable "pub_cidr" {
 variable "priv_cidr" {
     type = string
 }
+variable "region" {
+  type = string
+}

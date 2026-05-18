@@ -18,6 +18,7 @@ resource "aws_route_table" "private_route_table" {
 resource "aws_subnet" "private_subnet" {
   vpc_id     = aws_vpc.main.id
   cidr_block = var.priv_cidr
+  availability_zone = "${var.region}b"
 }
 
 resource "aws_route" "public_route" {
@@ -33,8 +34,8 @@ resource "aws_route_table" "public_route_table" {
 
 resource "aws_subnet" "public_subnet" {
   vpc_id     = aws_vpc.main.id
-  cidr_block = var.pub_cidr
-  
+  cidr_block = var.pub_cidr  
+  availability_zone = "${var.region}a"
 }
 
 resource "aws_route_table_association" "public" {
