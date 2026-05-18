@@ -169,3 +169,80 @@ resource "aws_s3_bucket_notification" "bucket_notification" {
     aws_lambda_permission.allow_s3
   ]
 }
+
+
+resource "aws_db_subnet_group" "mysql_subnets" {
+  name = "mysql-subnet-group"
+
+  subnet_ids = module.network.private_subnet_ids
+}
+
+resource "aws_security_group" "rds_sg" {
+  vpc_id = module.network.vpc_id
+
+  ingress {
+    from_port   = 3306
+    to_port     = 3306
+    protocol    = "tcp"
+    cidr_blocks = [module.network.vpc_cidr]
+  }
+
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+}
+
+resource "aws_db_instance" "first-mysql" {
+  identifier = "mysql-db-${terraform.workspace}"
+  engine         = "mysql"
+  engine_version = "8.0"
+  instance_class = "db.t3.micro"
+  allocated_storage = 20
+  db_name  = "appdb"
+  username = "admin"
+  password = "Admin12345" 
+
+  db_subnet_group_name   = aws_db_subnet_group.mysql_subnets.name
+  vpc_security_group_ids  = [aws_security_group.rds_sg.id]
+
+  skip_final_snapshot = true
+  publicly_accessible  = false
+}
+
+resource "aws_elasticache_subnet_group" "redis_subnets" {
+  name = "redis-subnet-group"
+
+  subnet_ids = module.network.private_subnet_ids
+}
+
+resource "aws_security_group" "redis_sg" {
+  vpc_id = module.network.vpc_id
+
+  ingress {
+    from_port   = 6379
+    to_port     = 6379
+    protocol    = "tcp"
+    cidr_blocks = [module.network.vpc_cidr]
+  }
+
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+}
+
+resource "aws_elasticache_cluster" "redis" {
+  cluster_id           = "redis-${terraform.workspace}"
+  engine               = "redis"
+  node_type            = "cache.t3.micro"
+  num_cache_nodes      = 1
+  parameter_group_name = "default.redis7"
+
+  subnet_group_name = aws_elasticache_subnet_group.redis_subnets.name
+  security_group_ids = [aws_security_group.redis_sg.id]
+}
