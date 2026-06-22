@@ -31,6 +31,7 @@ resource "aws_instance" "application" {
    vpc_security_group_ids = [
     aws_security_group.second_sg.id
   ]
+  key_name = "devops-project"
 }
 
 resource "aws_security_group" "second_sg" {
