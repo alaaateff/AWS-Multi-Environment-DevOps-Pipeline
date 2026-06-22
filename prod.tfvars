@@ -1,4 +1,4 @@
-region = "us-east-1"
+region = "eu-central-1"
 ami = "ami-00b105a12aa2a60eb"
 cidr_block_vpc = "10.30.0.0/16"
 public_subnets = {
