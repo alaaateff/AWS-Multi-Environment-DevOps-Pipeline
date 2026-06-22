@@ -15,6 +15,7 @@ resource "aws_instance" "bastion" {
    vpc_security_group_ids = [
     aws_security_group.allow_ssh.id
   ]
+  key_name = "devops-project.pem"
   provisioner "local-exec" {
     command = "echo The bastion\\'s IP address is ${self.public_ip}"
   }
