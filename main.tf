@@ -4,7 +4,7 @@ module "network" {
     public_subnets  = var.public_subnets
     private_subnets = var.private_subnets
     region = var.region
-    
+
 }
 
 resource "aws_instance" "bastion" {
@@ -45,7 +45,7 @@ resource "aws_security_group" "second_sg" {
     from_port   = 3000
     to_port     = 3000
     protocol    = "tcp"
-    cidr_blocks = [module.network.vpc_cidr]
+    source_security_group_id = aws_security_group.alb_sg.id
   }
 
   egress {
@@ -246,3 +246,58 @@ resource "aws_elasticache_cluster" "redis" {
   subnet_group_name = aws_elasticache_subnet_group.redis_subnets.name
   security_group_ids = [aws_security_group.redis_sg.id]
 }
+
+resource "aws_security_group" "alb_sg" {
+  vpc_id = module.network.vpc_id
+
+  ingress {
+  from_port   = 80
+  to_port     = 80
+  protocol    = "tcp"
+  cidr_blocks = ["0.0.0.0/0"]
+  }
+  egress {
+  from_port   = 0
+  to_port     = 0
+  protocol    = "-1"
+  cidr_blocks = ["0.0.0.0/0"]
+}
+
+}
+
+resource "aws_lb" "alb" {
+  name               = "alb"
+  internal           = false
+  load_balancer_type = "application"
+  security_groups    = [aws_security_group.alb_sg.id]
+  subnets            = [for subnet in aws_subnet.public : subnet.id]
+
+  tags = {
+    Environment = "${terraform.workspace}"
+  }
+}
+
+resource "aws_lb_target_group" "alb_target_group" {
+  name     = "alb_target_group"
+  port     = 3000
+  protocol = "HTTP"
+  vpc_id   = aws_vpc.main.id
+}
+
+resource "aws_lb_listener" "alb_listener" {
+  load_balancer_arn = aws_lb.alb.arn
+  port              = "80"
+  protocol          = "HTTP"
+  
+  default_action {
+    type             = "forward"
+    target_group_arn = aws_lb_target_group.alb_target_group.arn
+  }
+  }
+
+resource "aws_lb_target_group_attachment" "alb_tg_attach" {
+  target_group_arn = aws_lb_target_group.alb_target_group.arn
+  target_id        = aws_instance.application.id
+  port             = 3000
+}
+
