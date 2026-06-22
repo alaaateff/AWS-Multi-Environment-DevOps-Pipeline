@@ -273,7 +273,7 @@ resource "aws_lb" "alb" {
   internal           = false
   load_balancer_type = "application"
   security_groups    = [aws_security_group.alb_sg.id]
-  subnets            = [module.network.public_subnet_ids]
+  subnets            = module.network.public_subnet_ids
 
   tags = {
     Environment = "${terraform.workspace}"
