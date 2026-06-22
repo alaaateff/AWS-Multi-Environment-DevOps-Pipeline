@@ -281,7 +281,7 @@ resource "aws_lb" "alb" {
 }
 
 resource "aws_lb_target_group" "alb_target_group" {
-  name     = "alb_target_group"
+  name     = "alb-target-group"
   port     = 3000
   protocol = "HTTP"
   vpc_id   = module.network.vpc_id
