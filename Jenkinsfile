@@ -21,12 +21,16 @@ pipeline {
         }
         stage('Terraform workspace') {
             steps {
+                withCredentials([
+                   [$class: 'AmazonWebServicesCredentialsBinding', credentialsId: 'aws-credentials']
+        ]){
             sh """
               terraform workspace select ${params.ENV}
               if [ \$? -ne 0 ]; then
               terraform workspace new ${params.ENV}
               fi
               """
+            }
             }
         }
         stage('Terraform plan') {
