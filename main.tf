@@ -32,6 +32,9 @@ resource "aws_instance" "application" {
     aws_security_group.second_sg.id
   ]
   key_name = "devops-project"
+  tags = {
+  Name = "application-ec2"
+}
 }
 
 resource "aws_security_group" "second_sg" {
