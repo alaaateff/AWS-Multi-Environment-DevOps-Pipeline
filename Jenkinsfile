@@ -38,7 +38,7 @@ pipeline {
                 withCredentials([
                    [$class: 'AmazonWebServicesCredentialsBinding', credentialsId: 'aws-credentials']
         ]){
-              sh 'terraform plan -var-file=${params.ENV}.tfvars'
+              sh """terraform plan -var-file=${params.ENV}.tfvars"""
             }
             }
         }
@@ -47,7 +47,7 @@ pipeline {
                 withCredentials([
                    [$class: 'AmazonWebServicesCredentialsBinding', credentialsId: 'aws-credentials']
         ]){
-              sh 'terraform apply -var-file=${params.ENV}.tfvars -auto-approve'
+              sh """terraform apply -var-file=${params.ENV}.tfvars -auto-approve"""
             }
             }
         }
