@@ -309,3 +309,43 @@ resource "aws_lb_target_group_attachment" "alb_tg_attach" {
   port             = 3000
 }
 
+resource "aws_security_group" "jenkins_ansible_sg" {
+  vpc_id = module.network.vpc_id
+
+  ingress {
+    from_port   = 22
+    to_port     = 22
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+  ingress {
+    from_port   = 8080
+    to_port     = 8080
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+  egress {
+  from_port   = 0
+  to_port     = 0
+  protocol    = "-1"
+  cidr_blocks = ["0.0.0.0/0"]
+}
+tags = {
+  Name = "jenkins-ansible-sg"
+}
+}
+
+resource "aws_instance" "jenkins_ansible" {
+  ami                     = var.ami
+  instance_type           = "t3.small"
+  subnet_id = module.network.public_subnet_ids[0]
+  associate_public_ip_address  = true
+   vpc_security_group_ids = [
+    aws_security_group.jenkins_ansible_sg.id
+  ]
+  key_name = "devops-project"
+
+      tags = {
+  Name = "jenkins_ansible"
+}
+}
