@@ -344,6 +344,7 @@ resource "aws_instance" "jenkins_ansible" {
     aws_security_group.jenkins_ansible_sg.id
   ]
   key_name = "devops-project"
+  volume_size = 20
 
       tags = {
   Name = "jenkins_ansible"
