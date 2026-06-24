@@ -1,0 +1,48 @@
+- name: Create jenkins group 
+  become: yes
+  group: 
+    name: "{{ jenkins_group }}"
+    state: present
+
+- name: Create jenkins user 
+  become: yes
+  user:
+    name: "{{ jenkins_user }}"
+    group: "{{ jenkins_group }}"
+    home: "{{ jenkins_home }}"
+    create_home: yes
+    shell: "{{ shell }}"
+    state: present
+
+- name: Create .ssh directory
+  become: yes
+  file:
+    path: "{{ jenkins_home }}/.ssh"
+    state: directory
+    owner: "{{ jenkins_user }}"
+    group: "{{ jenkins_group }}"
+    mode: "0700"
+
+- name: Add Jenkins controller public key
+  become: yes
+  ansible.posix.authorized_key:
+    user: "{{ jenkins_user }}"
+    state: present
+    key: "{{ lookup('file', role_path + '/files/id_rsa.pub') }}"
+
+- name: Create workspace directory
+  become: yes
+  file: 
+    path: "{{ jenkins_home }}/workspace"
+    state: directory
+    owner: "{{ jenkins_user }}"
+    group: "{{ jenkins_group }}"
+    mode: "0755"
+
+- name: Allow jenkins user passwordless sudo
+  become: yes
+  copy:
+    dest: "/etc/sudoers.d/jenkins"
+    content: "jenkins ALL=(ALL) NOPASSWD:ALL"
+    mode: "0440"
+    validate: 'visudo -cf %s'
