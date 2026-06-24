@@ -1,0 +1,2 @@
+java_version: 21
+jdk_package: "java-{{ java_version }}-amazon-corretto"

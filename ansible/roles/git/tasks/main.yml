@@ -1,0 +1,14 @@
+- name: install git 
+  become: yes
+  package: 
+    name: "{{git_package}}"
+    state: present
+  
+- name: verify git installation
+  command: git --version
+  register: git_version
+  changed_when: false
+
+- name: show git version
+  debug: 
+    var: git_version.stdout

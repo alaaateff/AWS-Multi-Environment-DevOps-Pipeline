@@ -1,0 +1,38 @@
+- name: Insall Node.js
+  become: yes
+  package: 
+    name: "{{nodejs_package}}"
+    state: present
+
+- name: Verify Node.js 
+  command: node --version
+  register: node_version
+  changed_when: false
+
+- name: Show Node.js version
+  debug:
+   var: node_version.stdout
+  
+- name: Verify npm installation
+  command: npm --version
+  register: npm_version
+  changed_when: false
+
+- name: Show npm version
+  debug:
+    var: npm_version.stdout
+
+- name: Install PM2 globally
+  become: yes
+  community.general.npm:
+    name: "{{ pm2_package }}"
+    global: true
+
+- name: Verify PM2 installation
+  command: pm2 --version
+  register: pm2_version
+  changed_when: false
+
+- name: Show PM2 version
+  debug:
+    var: pm2_version.stdout

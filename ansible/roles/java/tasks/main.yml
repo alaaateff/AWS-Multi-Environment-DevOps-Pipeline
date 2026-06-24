@@ -1,0 +1,14 @@
+- name: install jdk 
+  become: yes
+  package: 
+    name: "{{jdk_package}}"
+    state: present
+  
+- name: verify jdk installation
+  command: java --version
+  register: java_version
+  changed_when: false
+
+- name: show java version
+  debug: 
+    var: java_version.stdout

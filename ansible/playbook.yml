@@ -1,0 +1,10 @@
+- name: Configure Application EC2 
+  hosts: app
+  become: yes
+
+  roles:
+  - common
+  - java
+  - git
+  - nodejs
+  
