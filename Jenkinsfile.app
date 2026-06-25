@@ -3,16 +3,39 @@ agent {
     label 'app'
 }
 
-environment {
-    RDS_HOSTNAME = credentials('rds-hostname')
-    RDS_USERNAME = credentials('rds-username')
-    RDS_PASSWORD = credentials('rds-password')
-    RDS_PORT = credentials('rds-port')
-    REDIS_HOSTNAME = credentials('redis-hostname')
-    REDIS_PORT = credentials('redis-port')
+parameters {
+    choice(
+        name: 'ENVIRONMENT',
+        choices: ['dev', 'prod'],
+        description: 'Select environment'
+    )
 }
 
 stages {
+    stage('Set Environment') { 
+      steps { 
+         script { 
+            if (params.ENVIRONMENT == 'dev') 
+            {
+               env.RDS_HOSTNAME = 'rds-hostname' 
+               env.RDS_USERNAME = 'rds-username' 
+               env.RDS_PASSWORD = 'rds-password' 
+               env.RDS_PORT = 'rds-port' 
+               env.REDIS_HOSTNAME = 'redis-hostname' 
+               env.REDIS_PORT = 'redis-port' 
+               }
+          else 
+             { 
+              env.RDS_HOSTNAME = 'rds-hostname-prod' 
+              env.RDS_USERNAME = 'rds-username-prod' 
+              env.RDS_PASSWORD = 'rds-password-prod' 
+              env.RDS_PORT = 'rds-port-prod' 
+              env.REDIS_HOSTNAME = 'redis-hostname-prod' 
+              env.REDIS_PORT = 'redis-port-prod' 
+              }
+            }
+         }
+     }
 
     stage('Checkout Application') {
         steps {
@@ -33,6 +56,14 @@ stages {
 
     stage('Deploy Application') {
         steps {
+            withCredentials([ 
+                string(credentialsId: env.RDS_HOSTNAME, variable: 'RDS_HOSTNAME'), 
+                string(credentialsId: env.RDS_USERNAME, variable: 'RDS_USERNAME'), 
+                string(credentialsId: env.RDS_PASSWORD, variable: 'RDS_PASSWORD'), 
+                string(credentialsId: env.RDS_PORT, variable: 'RDS_PORT'), 
+                string(credentialsId: env.REDIS_HOSTNAME, variable: 'REDIS_HOSTNAME'), 
+                string(credentialsId: env.REDIS_PORT, variable: 'REDIS_PORT') ]) 
+        {
           dir('app/nodeapp') {
           sh '''
           pm2 delete nodeapp || true
@@ -41,14 +72,15 @@ stages {
           '''
         }
         }
+        }
     }
 
     stage('Verify Deployment') {
         steps {
               sh '''
               pm2 list
-              curl http://localhost:3000/db
-              curl http://localhost:3000/redis
+              curl -s http://localhost:3000/db | grep "successful"
+              curl -s http://localhost:3000/redis | grep "successful"
               '''
         }
     }
