@@ -17,7 +17,7 @@ stages {
     stage('Checkout Application') {
         steps {
             dir('app'){
-            git branch: 'rds_redis' 
+            git branch: 'rds_redis', 
                 url: 'https://github.com/mahmoud254/jenkins_nodejs_example.git'
         }
       }
